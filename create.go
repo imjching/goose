@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"text/template"
+	"time"
 )
 
 // Create writes a new blank migration file.
@@ -17,10 +19,10 @@ func CreateWithTemplate(db *sql.DB, dir string, migrationTemplate *template.Temp
 	}
 
 	// Initial version.
-	version := "00001"
+	version := nextMigrationNumber(0)
 
 	if last, err := migrations.Last(); err == nil {
-		version = fmt.Sprintf("%05v", last.Version+1)
+		version = nextMigrationNumber(last.Version + 1)
 	}
 
 	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
@@ -50,7 +52,20 @@ func Create(db *sql.DB, dir, name, migrationType string) error {
 	return CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
-func writeTemplateToFile(path string, t *template.Template, version string) (string, error) {
+// Determines the version number of the next migration.
+// Source: https://github.com/rails/rails/blob/a9e5457d8cdd1a67a7c6f34a433a9e18057b4222/activerecord/lib/active_record/migration.rb#L910
+func nextMigrationNumber(number int64) int64 {
+	currentTimeString := time.Now().UTC().Format("20060102150405")
+
+	currentTime, err := strconv.ParseInt(currentTimeString, 10, 64)
+	if err != nil || currentTime < number {
+		return number
+	}
+
+	return currentTime
+}
+
+func writeTemplateToFile(path string, t *template.Template, version int64) (string, error) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to create file: %v already exists", path)
 	}
@@ -80,7 +95,7 @@ var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Pa
 
 import (
 	"database/sql"
-	"github.com/pressly/goose"
+	"github.com/imjching/goose"
 )
 
 func init() {

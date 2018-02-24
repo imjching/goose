@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/imjching/goose"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
@@ -52,7 +52,7 @@ func main() {
 	switch driver {
 	case "redshift":
 		driver = "postgres"
-	case  "tidb":
+	case "tidb":
 		driver = "mysql"
 	}
 
